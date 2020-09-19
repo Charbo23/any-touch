@@ -1,5 +1,5 @@
-import AnyTouch from './index';
-import Recognizer from '@any-touch/recognizer';
+import type { RecognizerConstructor, RecognizerOptions } from '@any-touch/shared';
+import type AnyTouch from './index';
 type C = typeof AnyTouch;
 type I = InstanceType<C>;
 /**
@@ -10,13 +10,14 @@ type I = InstanceType<C>;
  */
 export function use(
     atOrAT: C | I,
-    Recognizer: { C: any[] } & (new (...args: any) => [() => void]),
-    recognizerOptions?: Record<string, any>): void {
-    const name = recognizerOptions?.name;
+    Recognizer: RecognizerConstructor,
+    recognizerOptions?: RecognizerOptions): void {
+    // const name = recognizerOptions?.name;
     // 保证同一个事件只对应一个识别器
     // if (void 0 !== name && void 0 !== atOrAT.recognizerMap[name]) return;
 
-    const r = new Recognizer(recognizerOptions);
+    const recognizer = new Recognizer(recognizerOptions);
+    const [{ name }] = recognizer;
     const { C } = Recognizer;
     if (void 0 !== C) {
         // 初始化计算函数
@@ -31,10 +32,10 @@ export function use(
 
         // 识别器管理
         // recognizer.name是默认值或者options给定
-        // atOrAT.recognizerMap[name] = recognizer;
+        atOrAT.recognizerMap[name] = recognizer;
         // recognizer.recognizerMap = atOrAT.recognizerMap;
         // atOrAT.recognizers.push(atOrAT.recognizerMap[name]);
-        atOrAT.recognizers.push(r);
+        atOrAT.recognizers.push(recognizer);
     }
 
 

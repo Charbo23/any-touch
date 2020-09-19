@@ -44,17 +44,21 @@ function Pan(options: Partial<typeof DEFAULT_OPTIONS>) {
 
         // 需要有方向
         const isRecognizedNow = void 0 !== computed.direction &&
-            recognizeForPressMoveLike(computed, _test, _context.name, _context.status, emit, ([isRecognized, status]: any) => {
-                _context.status = status;
-                _isRecognized = isRecognized;
-            });
+            recognizeForPressMoveLike(computed,
+                _test,
+                _context.name,
+                _context.status,
+                emit, ([isRecognized, status]) => {
+                    _context.status = status;
+                    _isRecognized = isRecognized;
+                });
         // panleft/panup/panright/pandown
         if (isRecognizedNow) {
             emit(_context.name + computed.direction);
         }
     }
 
-    return [_recognize, _context];
+    return [_context,_recognize, ];
 }
 Pan.C = [ComputeVAndDir, ComputeDistance, ComputeDeltaXY];
 export default Pan;

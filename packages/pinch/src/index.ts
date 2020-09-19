@@ -1,7 +1,7 @@
-import type { Computed, EventTrigger,RecognizerStatus } from '@any-touch/shared';
-import  { STATUS_POSSIBLE } from '@any-touch/shared';
+import type { Computed, EventTrigger, RecognizerStatus } from '@any-touch/shared';
+import { STATUS_POSSIBLE } from '@any-touch/shared';
 import { ComputeScale } from '@any-touch/compute';
-import { canResetStatusForPressMoveLike,recognizeForPressMoveLike } from '@any-touch/recognizer';
+import { canResetStatusForPressMoveLike, recognizeForPressMoveLike } from '@any-touch/recognizer';
 const DEFAULT_OPTIONS = {
     name: 'pinch',
     // 触发事件所需要的最小缩放比例
@@ -9,8 +9,10 @@ const DEFAULT_OPTIONS = {
     pointLength: 2,
 };
 export default function Pinch(options: Partial<typeof DEFAULT_OPTIONS>) {
-    const _options = Object.assign(DEFAULT_OPTIONS, options);
-    let _status: RecognizerStatus = STATUS_POSSIBLE;
+    const _context = Object.assign(
+        DEFAULT_OPTIONS,
+        options,
+        { status: STATUS_POSSIBLE as RecognizerStatus });
     let _isRecognized = false;
 
     /**
@@ -20,10 +22,12 @@ export default function Pinch(options: Partial<typeof DEFAULT_OPTIONS>) {
      */
     function _test(computed: Computed): boolean {
         const { pointLength, scale } = computed;
-        return _options.pointLength === pointLength
-            && void 0 !== scale
-            && (_options.threshold < Math.abs(scale - 1) || _isRecognized);
-    };
+        return (
+            _context.pointLength === pointLength &&
+            void 0 !== scale &&
+            (_context.threshold < Math.abs(scale - 1) || _isRecognized)
+        );
+    }
 
     /**
      * 开始识别
@@ -31,16 +35,20 @@ export default function Pinch(options: Partial<typeof DEFAULT_OPTIONS>) {
      */
     function _recognize(computed: Computed, emit: EventTrigger) {
         // 重置status
-        if (canResetStatusForPressMoveLike(_status)) {
-            _status = STATUS_POSSIBLE;
-        };
+        if (canResetStatusForPressMoveLike(_context.status)) {
+            _context.status = STATUS_POSSIBLE;
+        }
 
-        recognizeForPressMoveLike(computed, _test, _options.name, _status, emit, ([isRecognized, status]: any) => {
-            _status = status;
-            _isRecognized = isRecognized;
-        });
-    };
-    return [_recognize, ()=>_options];
-};
+        recognizeForPressMoveLike(computed,
+            _test, _context.name,
+            _context.status,
+            emit,
+            ([isRecognized, status]) => {
+                _context.status = status;
+                _isRecognized = isRecognized;
+            });
+    }
+    return [_context,_recognize];
+}
 
 Pinch.C = [ComputeScale];

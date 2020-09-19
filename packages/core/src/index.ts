@@ -11,7 +11,11 @@
 import AnyEvent from 'any-event';
 import type { Listener } from 'any-event';
 
-import type { RecognizerConstruct, AnyTouchEvent, SupportEvent, ComputeFunction, ComputeWrapFunction, InputCreatorFunctionMap, InputCreatorFunction, Computed } from '@any-touch/shared';
+import type {
+    RecognizerConstructor,
+    RecognizerOptions,
+    AnyTouchEvent, SupportEvent, ComputeFunction, ComputeWrapFunction, InputCreatorFunctionMap, InputCreatorFunction, Computed, RecognizerContext
+} from '@any-touch/shared';
 import {
     Recognizer,
     TOUCH_START, TOUCH_MOVE, TOUCH_END, TOUCH_CANCEL, MOUSE_DOWN, MOUSE_MOVE, MOUSE_UP,
@@ -27,7 +31,7 @@ import emit2 from './emit2';
 // type TouchAction = 'auto' | 'none' | 'pan-x' | 'pan-left' | 'pan-right' | 'pan-y' | 'pan-up' | 'pan-down' | 'pinch-zoom' | 'manipulation';
 
 
-type BeforeEachHook = (recognizer: Recognizer, next: () => void) => void;
+type BeforeEachHook = (recognizerContext: RecognizerContext, next: () => void) => void;
 /**
  * 默认设置
  */
@@ -47,12 +51,12 @@ const DEFAULT_OPTIONS: Options = {
     preventDefaultExclude: /^(?:INPUT|TEXTAREA|BUTTON|SELECT)$/
 };
 export default class AnyTouch extends AnyEvent<AnyTouchEvent> {
-    static Tap: RecognizerConstruct;
-    static Pan: RecognizerConstruct;
-    static Swipe: RecognizerConstruct;
-    static Press: RecognizerConstruct;
-    static Pinch: RecognizerConstruct;
-    static Rotate: RecognizerConstruct;
+    static Tap: RecognizerConstructor;
+    static Pan: RecognizerConstructor;
+    static Swipe: RecognizerConstructor;
+    static Press: RecognizerConstructor;
+    static Pinch: RecognizerConstructor;
+    static Rotate: RecognizerConstructor;
     static STATUS_POSSIBLE: typeof STATUS_POSSIBLE;
     static STATUS_START: typeof STATUS_START;
     static STATUS_MOVE: typeof STATUS_MOVE;
@@ -63,7 +67,7 @@ export default class AnyTouch extends AnyEvent<AnyTouchEvent> {
 
     static version = '__VERSION__';
     // 识别器集合
-    static recognizers: any[] = [];
+    static recognizers: Recognizer[] = [];
     static recognizerMap: Record<string, Recognizer> = {};
     // 计算函数外壳函数集合
     static computeFunctionMap: Record<string, ComputeWrapFunction> = {};
@@ -72,7 +76,7 @@ export default class AnyTouch extends AnyEvent<AnyTouchEvent> {
      * @param {AnyTouchPlugin} 插件
      * @param {any[]} 插件参数
      */
-    static use = (Recognizer: any, options?: Record<string, any>): void => {
+    static use = (Recognizer: RecognizerConstructor, options?: RecognizerOptions): void => {
         use(AnyTouch, Recognizer, options);
     };
     /**
@@ -88,16 +92,15 @@ export default class AnyTouch extends AnyEvent<AnyTouchEvent> {
     options: Options;
     inputCreatorMap: InputCreatorFunctionMap;
     recognizerMap: Record<string, Recognizer> = {};
-    recognizers: any[] = [];
+    recognizers: Recognizer[] = [];
     beforeEachHook?: BeforeEachHook;
     cacheComputedFunctionGroup = Object.create(null);
     /**
-     * @param {Element} 目标元素, 微信下没有el
-     * @param {Object} 选项
+     * @param el 目标元素
+     * @param options 选项
      */
     constructor(el?: HTMLElement, options?: Options) {
         super();
-
         this.el = el;
         this.options = { ...DEFAULT_OPTIONS, ...options };
 
@@ -211,7 +214,7 @@ export default class AnyTouch extends AnyEvent<AnyTouchEvent> {
 
             // 缓存每次计算的结果
             // 以函数名为键值
-            for (const [recognize, context] of this.recognizers) {
+            for (const [context, recognize] of this.recognizers) {
                 // if (recognizer.disabled) continue;
                 // 恢复上次的缓存
                 const { name } = context;
@@ -239,7 +242,7 @@ export default class AnyTouch extends AnyEvent<AnyTouchEvent> {
      * @param {AnyTouchPlugin} 插件
      * @param {Object} 选项
      */
-    use(Recognizer: any, options?: Record<string, any>): void {
+    use(Recognizer: RecognizerConstructor, options?: RecognizerOptions): void {
         use(this, Recognizer, options);
     };
 
@@ -251,12 +254,11 @@ export default class AnyTouch extends AnyEvent<AnyTouchEvent> {
         removeUse(this, name);
     };
 
-
     /**
      * 事件拦截器
      * @param hook 钩子函数
      */
-    beforeEach(hook: (recognizer: Recognizer, next: () => void) => void): void {
+    beforeEach(hook: (recognizer: RecognizerContext, next: () => void) => void): void {
         this.beforeEachHook = hook;
     };
 

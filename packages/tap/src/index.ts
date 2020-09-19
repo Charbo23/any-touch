@@ -26,8 +26,10 @@ const DEFAULT_OPTIONS = {
 
 
 export default function Tap(options: Partial<typeof DEFAULT_OPTIONS>) {
-    const _options = Object.assign(DEFAULT_OPTIONS, options);
-    let _status: RecognizerStatus = STATUS_POSSIBLE;
+    const _context = Object.assign(
+        DEFAULT_OPTIONS,
+        options,
+        { status: STATUS_POSSIBLE as RecognizerStatus });
     let _tapCount = 0;
     // 记录每次单击完成时的坐标
     let _prevTapPoint: Point | undefined;
@@ -48,10 +50,10 @@ export default function Tap(options: Partial<typeof DEFAULT_OPTIONS>) {
         // 4. start至end的事件, 区分tap和press
         const { maxPointLength, distance } = computed;
         // console.log(this.name,pointLength, maxPointLength)
-        return maxPointLength === _options.pointLength &&
+        return maxPointLength === _context.pointLength &&
             0 === pointLength &&
-            _options.maxDistance >= distance &&
-            _options.maxPressTime > deltaTime;
+            _context.maxDistance >= distance &&
+            _context.maxPressTime > deltaTime;
     };
 
 
@@ -67,7 +69,7 @@ export default function Tap(options: Partial<typeof DEFAULT_OPTIONS>) {
         } else {
             const interval = now - _prevTapTime;
             _prevTapTime = now;
-            return interval < _options.waitNextTapTime;
+            return interval < _context.waitNextTapTime;
         }
     };
 
@@ -76,9 +78,9 @@ export default function Tap(options: Partial<typeof DEFAULT_OPTIONS>) {
      */
     function _countDownToFail() {
         _countDownToFailTimer = (setTimeout as Window['setTimeout'])(() => {
-            _status = STATUS_FAILED;
+            _context.status = STATUS_FAILED;
             _reset();
-        }, _options.waitNextTapTime);
+        }, _context.waitNextTapTime);
     };
 
     function _cancelCountDownToFail() {
@@ -102,7 +104,7 @@ export default function Tap(options: Partial<typeof DEFAULT_OPTIONS>) {
             const distanceFromPreviousTap = getVLength({ x: center.x - _prevTapPoint.x, y: center.y - _prevTapPoint.y });
             // 缓存当前点, 作为下次点击的上一点
             _prevTapPoint = center;
-            return _options.maxDistanceFromPrevTap >= distanceFromPreviousTap;
+            return _context.maxDistanceFromPrevTap >= distanceFromPreviousTap;
         } else {
             _prevTapPoint = center;
             return true;
@@ -159,11 +161,10 @@ export default function Tap(options: Partial<typeof DEFAULT_OPTIONS>) {
         emit: (type: string, ...payload: any[]) => void
     ): void {
         const { stage, x, y } = computed;
-
+        _context.status = STATUS_POSSIBLE;
         // 只在end阶段去识别
         if (INPUT_END !== stage) return;
 
-        _status = STATUS_POSSIBLE;
         // 每一次点击是否符合要求
         if (_test(computed)) {
 
@@ -178,19 +179,19 @@ export default function Tap(options: Partial<typeof DEFAULT_OPTIONS>) {
 
             // 是否满足点击次数要求
             // 之所以用%, 是因为如果连续点击3次, 单击的tapCount会为3, 但是其实tap也应该触发
-            if (0 === _tapCount % _options.tapTimes) {
-                _status = STATUS_RECOGNIZED;
-                emit(_options.name, { ...computed, tapCount: _tapCount });
+            if (0 === _tapCount % _context.tapTimes) {
+                _context.status = STATUS_RECOGNIZED;
+                emit(_context.name, { ...computed, tapCount: _tapCount });
                 _reset();
             } else {
                 _countDownToFail();
             }
         } else {
             _reset();
-            _status = STATUS_FAILED;
+            _context.status = STATUS_FAILED;
         }
     };
 
-    return [_recognize, ()=>_options];
+    return [_context,_recognize];
 }
 Tap.C = [ComputeDistance, ComputeMaxLength];

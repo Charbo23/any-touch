@@ -1,11 +1,43 @@
-import { STATUS_POSSIBLE, STATUS_START, STATUS_MOVE, STATUS_END, STATUS_CANCELLED, STATUS_FAILED, STATUS_RECOGNIZED } from '@any-touch/shared';
-import Base from '@any-touch/recognizer';
+import {
+    STATUS_POSSIBLE,
+    STATUS_START, STATUS_MOVE,
+    STATUS_END, STATUS_CANCELLED,
+    STATUS_FAILED, STATUS_RECOGNIZED
+} from '@any-touch/shared';
 /**
  * 基础识别器类型
  */
-export type Recognizer = Base;
 export type AnyTouchPlugin = any;
-export type RecognizerConstruct = typeof Base;
+
+/**
+ * 识别器选项
+ */
+export interface RecognizerOptions {
+    name: string;
+    [k: string]: string | number;
+}
+
+/**
+ * 识别器上下文
+ */
+export interface RecognizerContext extends RecognizerOptions {
+
+}
+
+/**
+ * 识别器构造函数
+ */
+export interface RecognizerConstructor {
+    C: any[];
+    new(...args: any): [RecognizerContext, (computed: Computed, emit: EventTrigger) => void];
+}
+
+/**
+ * 识别器实例
+ */
+export type Recognizer  = InstanceType<RecognizerConstructor>
+
+
 /**
  * 适配器支持的事件类型
  */
