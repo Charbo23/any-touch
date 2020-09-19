@@ -1,6 +1,7 @@
-import type { Computed, EventTrigger } from '@any-touch/shared';
+import type { Computed, EventTrigger, RecognizerStatus } from '@any-touch/shared';
+import { STATUS_POSSIBLE } from '@any-touch/shared';
 import { ComputeAngle } from '@any-touch/compute';
-import Recognizer, { recognizeForPressMoveLike } from '@any-touch/recognizer';
+import { canResetStatusForPressMoveLike, recognizeForPressMoveLike } from '@any-touch/recognizer';
 
 const DEFAULT_OPTIONS = {
     name: 'rotate',
@@ -8,28 +9,37 @@ const DEFAULT_OPTIONS = {
     threshold: 0,
     pointLength: 2,
 };
-export default class extends Recognizer {
-    constructor(options: Partial<typeof DEFAULT_OPTIONS>) {
-        super({ ...DEFAULT_OPTIONS, ...options });
-        this.computeFunctions = [ComputeAngle];
-    };
+export default function Rotate(options: Partial<typeof DEFAULT_OPTIONS>) {
+    const _options = Object.assign(DEFAULT_OPTIONS, options);
+    let _status: RecognizerStatus = STATUS_POSSIBLE;
+    let _isRecognized = false;
 
     /**
      * 识别条件
      * @param computed 计算数据
      * @return 接收是否识别状态
      */
-    test(computed: Computed): boolean {
+    function _test(computed: Computed): boolean {
         const { pointLength, angle } = computed;
-        return this.isValidPointLength(pointLength) && (this.options.threshold < Math.abs(angle) || this.isRecognized);
+        return _options.pointLength === pointLength && (_options.threshold < Math.abs(angle) || _isRecognized);
     };
 
     /**
      * 开始识别
      * @param computed 计算数据
      */
-    recognize(computed: Computed, emit: EventTrigger) {
-        recognizeForPressMoveLike(this, computed, emit);
-    };
+    function _recognize(computed: Computed, emit: EventTrigger) {
+        // 重置status
+        if (canResetStatusForPressMoveLike(_status)) {
+            _status = STATUS_POSSIBLE;
+        };
 
+        recognizeForPressMoveLike(computed, _test, _options.name, _status, emit, ([isRecognized, status]: any) => {
+            _status = status;
+            _isRecognized = isRecognized;
+        });
+    };
+    return [_recognize, ()=>_options];
 };
+
+Rotate.C = [ComputeAngle];

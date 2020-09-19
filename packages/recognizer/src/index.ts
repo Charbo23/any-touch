@@ -6,7 +6,7 @@ import {
 // 导出recognizeForPressMoveLike,
 // resetStatusForPressMoveLike
 export { default as recognizeForPressMoveLike } from './recognizeForPressMoveLike';
-export { default as resetStatusForPressMoveLike } from './resetStatusForPressMoveLike';
+export { default as canResetStatusForPressMoveLike } from './canResetStatusForPressMoveLike';
 
 // 联合变交叉
 // type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void) ? I : never;
@@ -27,7 +27,7 @@ export default abstract class {
 
     computeFunctions: ComputeWrapFunction[] = [];
 
-    constructor(options: { name: string, [k: string]: number|string }) {
+    constructor(options: { name: string, [k: string]: number | string }) {
         this.options = options;
         this.name = this.options.name;
     };

@@ -1,10 +1,9 @@
-import { Point, Input, Computed } from '@any-touch/shared';
+import type { Point, RecognizerStatus, Computed } from '@any-touch/shared';
 import {
     STATUS_RECOGNIZED,
     STATUS_POSSIBLE,
     STATUS_FAILED, INPUT_END
 } from '@any-touch/shared';
-import Recognizer from '@any-touch/recognizer';
 import { getVLength } from '@any-touch/vector';
 import { ComputeDistance, ComputeMaxLength } from '@any-touch/compute';
 const DEFAULT_OPTIONS = {
@@ -24,55 +23,89 @@ const DEFAULT_OPTIONS = {
     // 从接触到离开屏幕的最大时间
     maxPressTime: 250,
 };
-export default class extends Recognizer {
-    public tapCount: number;
 
+
+export default function Tap(options: Partial<typeof DEFAULT_OPTIONS>) {
+    const _options = Object.assign(DEFAULT_OPTIONS, options);
+    let _status: RecognizerStatus = STATUS_POSSIBLE;
+    let _tapCount = 0;
     // 记录每次单击完成时的坐标
-    public prevTapPoint?: Point;
-    public prevTapTime?: number;
-
-    // 多次tap之间的距离是否满足要求
-    public isValidDistanceFromPrevTap?: boolean;
-
-    private _countDownToFailTimer?: number;
-
-    constructor(options: Partial<typeof DEFAULT_OPTIONS>) {
-        super({ ...DEFAULT_OPTIONS, ...options });
-        this.computeFunctions = [ComputeDistance, ComputeMaxLength];
-        this.tapCount = 0;
-    };
+    let _prevTapPoint: Point | undefined;
+    let _prevTapTime: number | undefined;
+    let _countDownToFailTimer: number;
 
     /**
-     * 判断前后2次点击的距离是否超过阈值
-     * @param {Point} 当前触点中心坐标
-     * @return {Boolean} 前后2次点击的距离是否超过阈值
-     */
-    private _isValidDistanceFromPrevTap(center: Point): boolean {
-        // 判断2次点击的距离
-        if (void 0 !== this.prevTapPoint) {
-            const distanceFromPreviousTap = getVLength({ x: center.x - this.prevTapPoint.x, y: center.y - this.prevTapPoint.y });
-            // 缓存当前点, 作为下次点击的上一点
-            this.prevTapPoint = center;
-            return this.options.maxDistanceFromPrevTap >= distanceFromPreviousTap;
-        } else {
-            this.prevTapPoint = center;
-            return true;
-        }
+      * 识别条件
+      * @param computed 计算结果
+      * @return 是否验证成功
+      */
+    function _test(computed: Computed): boolean {
+        const { startInput, pointLength } = computed;
+        const deltaTime = computed.timestamp - startInput.timestamp;
+        // 1. 触点数
+        // 2. 当前点击数为0, 也就是当所有触点离开才通过
+        // 3. 移动距离
+        // 4. start至end的事件, 区分tap和press
+        const { maxPointLength, distance } = computed;
+        // console.log(this.name,pointLength, maxPointLength)
+        return maxPointLength === _options.pointLength &&
+            0 === pointLength &&
+            _options.maxDistance >= distance &&
+            _options.maxPressTime > deltaTime;
     };
+
 
     /**
      * 校验2次tap的时间间隔是否满足
      * @return {Boolean} 是否满足
      */
-    private _isValidInterval(): boolean {
+    function _isValidInterval(): boolean {
         const now = performance.now();
-        if (void 0 === this.prevTapTime) {
-            this.prevTapTime = now;
+        if (void 0 === _prevTapTime) {
+            _prevTapTime = now;
             return true;
         } else {
-            const interval = now - this.prevTapTime;
-            this.prevTapTime = now;
-            return interval < this.options.waitNextTapTime;
+            const interval = now - _prevTapTime;
+            _prevTapTime = now;
+            return interval < _options.waitNextTapTime;
+        }
+    };
+
+    /**
+     * 指定时候后, 状态变为"失败"
+     */
+    function _countDownToFail() {
+        _countDownToFailTimer = (setTimeout as Window['setTimeout'])(() => {
+            _status = STATUS_FAILED;
+            _reset();
+        }, _options.waitNextTapTime);
+    };
+
+    function _cancelCountDownToFail() {
+        clearTimeout(_countDownToFailTimer);
+    };
+
+    function _reset() {
+        _tapCount = 0;
+        _prevTapPoint = void 0;
+        _prevTapTime = void 0;
+    };
+
+    /**
+    * 判断前后2次点击的距离是否超过阈值
+    * @param center 当前触点中心坐标
+    * @return 前后2次点击的距离是否超过阈值
+    */
+    function _isValidDistanceFromPrevTap(center: Point): boolean {
+        // 判断2次点击的距离
+        if (void 0 !== _prevTapPoint) {
+            const distanceFromPreviousTap = getVLength({ x: center.x - _prevTapPoint.x, y: center.y - _prevTapPoint.y });
+            // 缓存当前点, 作为下次点击的上一点
+            _prevTapPoint = center;
+            return _options.maxDistanceFromPrevTap >= distanceFromPreviousTap;
+        } else {
+            _prevTapPoint = center;
+            return true;
         }
     };
 
@@ -118,79 +151,46 @@ export default class extends Recognizer {
      *              |
      *             结束
      * 
-     * @param {Input} 计算数据 
+     * @param computed 计算数据 
+     * @param emit 事件触发器
      */
-    recognize(computed: Computed, emit: (type: string, ...payload: any[]) => void): void {
+    function _recognize(
+        computed: Computed,
+        emit: (type: string, ...payload: any[]) => void
+    ): void {
         const { stage, x, y } = computed;
 
         // 只在end阶段去识别
         if (INPUT_END !== stage) return;
 
-        this.status = STATUS_POSSIBLE;
+        _status = STATUS_POSSIBLE;
         // 每一次点击是否符合要求
-        if (this.test(computed)) {
+        if (_test(computed)) {
 
-            this.cancelCountDownToFail();
+            _cancelCountDownToFail();
             // 判断2次点击之间的距离是否过大
             // 对符合要求的点击进行累加
-            if (this._isValidDistanceFromPrevTap({ x, y }) && this._isValidInterval()) {
-                this.tapCount++;
+            if (_isValidDistanceFromPrevTap({ x, y }) && _isValidInterval()) {
+                _tapCount++;
             } else {
-                this.tapCount = 1;
+                _tapCount = 1;
             }
 
             // 是否满足点击次数要求
             // 之所以用%, 是因为如果连续点击3次, 单击的tapCount会为3, 但是其实tap也应该触发
-            if (0 === this.tapCount % this.options.tapTimes) {
-                this.status = STATUS_RECOGNIZED;
-                emit(this.options.name, { ...computed, tapCount: this.tapCount });
-                this.reset();
+            if (0 === _tapCount % _options.tapTimes) {
+                _status = STATUS_RECOGNIZED;
+                emit(_options.name, { ...computed, tapCount: _tapCount });
+                _reset();
             } else {
-                this.countDownToFail();
+                _countDownToFail();
             }
         } else {
-            this.reset();
-            this.status = STATUS_FAILED;
+            _reset();
+            _status = STATUS_FAILED;
         }
     };
 
-    /**
-     * 指定时候后, 状态变为"失败"
-     */
-    countDownToFail() {
-        this._countDownToFailTimer = (setTimeout as Window['setTimeout'])(() => {
-            this.status = STATUS_FAILED;
-            this.reset();
-        }, this.options.waitNextTapTime);
-    };
-
-    cancelCountDownToFail() {
-        clearTimeout(this._countDownToFailTimer);
-    };
-
-    reset() {
-        this.tapCount = 0;
-        this.prevTapPoint = void 0;
-        this.prevTapTime = void 0;
-    };
-
-    /**
-      * 识别条件
-      * @param computed 计算结果
-      * @return 是否验证成功
-      */
-    test(computed: Computed): boolean {
-        const { startInput, pointLength } = computed;
-        const deltaTime = computed.timestamp - startInput.timestamp;
-        // 1. 触点数
-        // 2. 当前点击数为0, 也就是当所有触点离开才通过
-        // 3. 移动距离
-        // 4. start至end的事件, 区分tap和press
-        const { maxPointLength, distance } = computed;
-        // console.log(this.name,pointLength, maxPointLength)
-        return maxPointLength === this.options.pointLength &&
-            0 === pointLength &&
-            this.options.maxDistance >= distance &&
-            this.options.maxPressTime > deltaTime;
-    };
-};
+    return [_recognize, ()=>_options];
+}
+Tap.C = [ComputeDistance, ComputeMaxLength];

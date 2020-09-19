@@ -10,29 +10,36 @@ type I = InstanceType<C>;
  */
 export function use(
     atOrAT: C | I,
-    Recognizer: new (...args: any) => Recognizer,
+    Recognizer: { C: any[] } & (new (...args: any) => [() => void]),
     recognizerOptions?: Record<string, any>): void {
     const name = recognizerOptions?.name;
     // 保证同一个事件只对应一个识别器
-    if (void 0 !== name && void 0 !== atOrAT.recognizerMap[name]) return;
+    // if (void 0 !== name && void 0 !== atOrAT.recognizerMap[name]) return;
 
-    const recognizer = new Recognizer(recognizerOptions);
-
-    // 初始化计算函数
-    for (const createComputeFunction of recognizer.computeFunctions) {
-        const { _id } = createComputeFunction;
-        if (void 0 === atOrAT.computeFunctionMap[_id]) {
-            // 创建计算函数
-            // 区分是实例的use还是构造函数的use
-            atOrAT.computeFunctionMap[_id] = 'version' in atOrAT ? createComputeFunction : createComputeFunction();
+    const r = new Recognizer(recognizerOptions);
+    const { C } = Recognizer;
+    if (void 0 !== C) {
+        // 初始化计算函数
+        for (const createComputeFunction of C) {
+            const { _id } = createComputeFunction;
+            if (void 0 === atOrAT.computeFunctionMap[_id]) {
+                // 创建计算函数
+                // 区分是实例的use还是构造函数的use
+                atOrAT.computeFunctionMap[_id] = 'version' in atOrAT ? createComputeFunction : createComputeFunction();
+            }
         }
+
+        // 识别器管理
+        // recognizer.name是默认值或者options给定
+        // atOrAT.recognizerMap[name] = recognizer;
+        // recognizer.recognizerMap = atOrAT.recognizerMap;
+        // atOrAT.recognizers.push(atOrAT.recognizerMap[name]);
+        atOrAT.recognizers.push(r);
     }
 
-    // 识别器管理
-    // recognizer.name是默认值或者options给定
-    atOrAT.recognizerMap[recognizer.name] = recognizer;
-    recognizer.recognizerMap = atOrAT.recognizerMap;
-    atOrAT.recognizers.push(atOrAT.recognizerMap[recognizer.name]);
+
+
+    // recognize
 };
 
 /**

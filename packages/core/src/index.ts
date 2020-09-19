@@ -63,7 +63,7 @@ export default class AnyTouch extends AnyEvent<AnyTouchEvent> {
 
     static version = '__VERSION__';
     // 识别器集合
-    static recognizers: Recognizer[] = [];
+    static recognizers: any[] = [];
     static recognizerMap: Record<string, Recognizer> = {};
     // 计算函数外壳函数集合
     static computeFunctionMap: Record<string, ComputeWrapFunction> = {};
@@ -72,7 +72,7 @@ export default class AnyTouch extends AnyEvent<AnyTouchEvent> {
      * @param {AnyTouchPlugin} 插件
      * @param {any[]} 插件参数
      */
-    static use = (Recognizer: new (...args: any) => Recognizer, options?: Record<string, any>): void => {
+    static use = (Recognizer: any, options?: Record<string, any>): void => {
         use(AnyTouch, Recognizer, options);
     };
     /**
@@ -88,7 +88,7 @@ export default class AnyTouch extends AnyEvent<AnyTouchEvent> {
     options: Options;
     inputCreatorMap: InputCreatorFunctionMap;
     recognizerMap: Record<string, Recognizer> = {};
-    recognizers: Recognizer[] = [];
+    recognizers: any[] = [];
     beforeEachHook?: BeforeEachHook;
     cacheComputedFunctionGroup = Object.create(null);
     /**
@@ -211,12 +211,13 @@ export default class AnyTouch extends AnyEvent<AnyTouchEvent> {
 
             // 缓存每次计算的结果
             // 以函数名为键值
-            for (const recognizer of this.recognizers) {
-                if (recognizer.disabled) continue;
+            for (const [recognize, context] of this.recognizers) {
+                // if (recognizer.disabled) continue;
                 // 恢复上次的缓存
-                recognizer.recognize(computed, type => {
+                const { name } = context;
+                recognize(computed, (type: string) => {
                     // 此时的e就是this.computed
-                    const payload = { ...computed, type, baseType: recognizer.name };
+                    const payload = { ...computed, type, baseType: name };
 
                     // 防止数据被vue类框架拦截
                     Object?.freeze(payload);
@@ -224,7 +225,7 @@ export default class AnyTouch extends AnyEvent<AnyTouchEvent> {
                     if (void 0 === this.beforeEachHook) {
                         emit2(this, payload);
                     } else {
-                        this.beforeEachHook(recognizer, () => {
+                        this.beforeEachHook(context, () => {
                             emit2(this, payload);
                         });
                     }
@@ -238,7 +239,7 @@ export default class AnyTouch extends AnyEvent<AnyTouchEvent> {
      * @param {AnyTouchPlugin} 插件
      * @param {Object} 选项
      */
-    use(Recognizer: new (...args: any) => Recognizer, options?: Record<string, any>): void {
+    use(Recognizer: any, options?: Record<string, any>): void {
         use(this, Recognizer, options);
     };
 
