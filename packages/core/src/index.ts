@@ -12,12 +12,12 @@ import AnyEvent from 'any-event';
 import type { Listener } from 'any-event';
 
 import type {
-    RecognizerConstructor,
+    RecognizerReturn,
+    RecognizerFunction,
     RecognizerOptions,
     AnyTouchEvent, SupportEvent, ComputeFunction, ComputeWrapFunction, InputCreatorFunctionMap, InputCreatorFunction, Computed, RecognizerContext
 } from '@any-touch/shared';
 import {
-    Recognizer,
     TOUCH_START, TOUCH_MOVE, TOUCH_END, TOUCH_CANCEL, MOUSE_DOWN, MOUSE_MOVE, MOUSE_UP,
     STATUS_POSSIBLE, STATUS_START, STATUS_MOVE, STATUS_END, STATUS_CANCELLED, STATUS_FAILED, STATUS_RECOGNIZED
 } from '@any-touch/shared';
@@ -51,12 +51,12 @@ const DEFAULT_OPTIONS: Options = {
     preventDefaultExclude: /^(?:INPUT|TEXTAREA|BUTTON|SELECT)$/
 };
 export default class AnyTouch extends AnyEvent<AnyTouchEvent> {
-    static Tap: RecognizerConstructor;
-    static Pan: RecognizerConstructor;
-    static Swipe: RecognizerConstructor;
-    static Press: RecognizerConstructor;
-    static Pinch: RecognizerConstructor;
-    static Rotate: RecognizerConstructor;
+    static Tap: RecognizerFunction;
+    static Pan: RecognizerFunction;
+    static Swipe: RecognizerFunction;
+    static Press: RecognizerFunction;
+    static Pinch: RecognizerFunction;
+    static Rotate: RecognizerFunction;
     static STATUS_POSSIBLE: typeof STATUS_POSSIBLE;
     static STATUS_START: typeof STATUS_START;
     static STATUS_MOVE: typeof STATUS_MOVE;
@@ -67,8 +67,8 @@ export default class AnyTouch extends AnyEvent<AnyTouchEvent> {
 
     static version = '__VERSION__';
     // 识别器集合
-    static recognizers: Recognizer[] = [];
-    static recognizerMap: Record<string, Recognizer> = {};
+    static recognizers: RecognizerReturn[] = [];
+    static recognizerMap: Record<string, RecognizerReturn> = {};
     // 计算函数外壳函数集合
     static computeFunctionMap: Record<string, ComputeWrapFunction> = {};
     /**
@@ -76,7 +76,7 @@ export default class AnyTouch extends AnyEvent<AnyTouchEvent> {
      * @param {AnyTouchPlugin} 插件
      * @param {any[]} 插件参数
      */
-    static use = (Recognizer: RecognizerConstructor, options?: RecognizerOptions): void => {
+    static use = (Recognizer: RecognizerFunction, options?: RecognizerOptions): void => {
         use(AnyTouch, Recognizer, options);
     };
     /**
@@ -91,8 +91,8 @@ export default class AnyTouch extends AnyEvent<AnyTouchEvent> {
     // 选项
     options: Options;
     inputCreatorMap: InputCreatorFunctionMap;
-    recognizerMap: Record<string, Recognizer> = {};
-    recognizers: Recognizer[] = [];
+    recognizerMap: Record<string, RecognizerReturn> = {};
+    recognizers: RecognizerReturn[] = [];
     beforeEachHook?: BeforeEachHook;
     cacheComputedFunctionGroup = Object.create(null);
     /**
@@ -242,7 +242,7 @@ export default class AnyTouch extends AnyEvent<AnyTouchEvent> {
      * @param {AnyTouchPlugin} 插件
      * @param {Object} 选项
      */
-    use(Recognizer: RecognizerConstructor, options?: RecognizerOptions): void {
+    use(Recognizer: RecognizerFunction, options?: RecognizerOptions): void {
         use(this, Recognizer, options);
     };
 
@@ -267,8 +267,8 @@ export default class AnyTouch extends AnyEvent<AnyTouchEvent> {
      * @param name 识别器的名字
      * @return 返回识别器
      */
-    get(name: string): Recognizer | void {
-        return this.recognizerMap[name];
+    get(name: string): RecognizerReturn[0] | void {
+        return this.recognizerMap[name][0];
     };
 
     /**

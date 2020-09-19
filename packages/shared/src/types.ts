@@ -10,32 +10,57 @@ import {
 export type AnyTouchPlugin = any;
 
 /**
+ * 计算函数
+ */
+export interface ComputeFunction {
+    (input: Input): Partial<Computed> | void;
+}
+/**
+ * 计算函数外壳函数
+ */
+export interface ComputeWrapFunction {
+    (): ComputeFunction;
+    _id: string;
+}
+
+/**
+ * 仅用来作为识别器和at通知的载体函数
+ */
+export interface EventTrigger {
+    (type: string): void
+}
+
+
+/**
  * 识别器选项
  */
-export interface RecognizerOptions {
-    name: string;
-    [k: string]: string | number;
-}
+// export type RecognizerOptions<DEFAULT_OPTIONS = object> = Partial<Omit<DEFAULT_OPTIONS, 'name'>>
+//     & { name: string };
+
+
+export type RecognizerOptions<DEFAULT_OPTIONS = {[k:string]:string|number}> = Partial<DEFAULT_OPTIONS>;
 
 /**
  * 识别器上下文
  */
-export interface RecognizerContext extends RecognizerOptions {
-
-}
-
-/**
- * 识别器构造函数
- */
-export interface RecognizerConstructor {
-    C: any[];
-    new(...args: any): [RecognizerContext, (computed: Computed, emit: EventTrigger) => void];
-}
+export type RecognizerContext<DEFAULT_OPTIONS = any> = RecognizerOptions<DEFAULT_OPTIONS> & {
+    status: RecognizerStatus;
+    name: string;
+};
 
 /**
  * 识别器实例
  */
-export type Recognizer  = InstanceType<RecognizerConstructor>
+export type RecognizerReturn = [RecognizerContext, (computed: Computed, emit: EventTrigger) => void];
+
+/**
+ * 识别器构造函数
+ */
+export interface RecognizerFunction {
+    C: ComputeWrapFunction[];
+    (options?: RecognizerOptions): RecognizerReturn;
+}
+
 
 
 /**
@@ -109,26 +134,6 @@ export interface Input extends InputOnlyHasCurrent {
 // }
 
 
-/**
- * 计算函数
- */
-export interface ComputeFunction {
-    (input: Input): Partial<Computed> | void;
-}
-/**
- * 计算函数外壳函数
- */
-export interface ComputeWrapFunction {
-    (): ComputeFunction;
-    _id: string;
-}
-
-/**
- * 仅用来作为识别器和at通知的载体函数
- */
-export interface EventTrigger {
-    (type: string): void
-}
 
 /**
  * 方向

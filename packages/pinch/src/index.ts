@@ -1,4 +1,4 @@
-import type { Computed, EventTrigger, RecognizerStatus } from '@any-touch/shared';
+import type { Computed, EventTrigger, RecognizerStatus, RecognizerOptions, RecognizerFunction } from '@any-touch/shared';
 import { STATUS_POSSIBLE } from '@any-touch/shared';
 import { ComputeScale } from '@any-touch/compute';
 import { canResetStatusForPressMoveLike, recognizeForPressMoveLike } from '@any-touch/recognizer';
@@ -8,7 +8,9 @@ const DEFAULT_OPTIONS = {
     threshold: 0,
     pointLength: 2,
 };
-export default function Pinch(options: Partial<typeof DEFAULT_OPTIONS>) {
+export default function Pinch(options?: RecognizerOptions<typeof DEFAULT_OPTIONS>)
+    : ReturnType<RecognizerFunction> {
+
     const _context = Object.assign(
         DEFAULT_OPTIONS,
         options,
@@ -48,7 +50,7 @@ export default function Pinch(options: Partial<typeof DEFAULT_OPTIONS>) {
                 _isRecognized = isRecognized;
             });
     }
-    return [_context,_recognize];
+    return [_context, _recognize];
 }
 
 Pinch.C = [ComputeScale];

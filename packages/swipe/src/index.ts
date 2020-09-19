@@ -1,4 +1,4 @@
-import type { EventTrigger, Computed, RecognizerStatus } from '@any-touch/shared';
+import type { EventTrigger, Computed, RecognizerStatus,RecognizerOptions,RecognizerFunction } from '@any-touch/shared';
 import { INPUT_END, STATUS_POSSIBLE, STATUS_RECOGNIZED } from '@any-touch/shared';
 import { ComputeDistance, ComputeVAndDir, ComputeMaxLength } from '@any-touch/compute';
 const DEFAULT_OPTIONS = {
@@ -9,7 +9,7 @@ const DEFAULT_OPTIONS = {
 };
 
 
-export default function Press(options: Partial<typeof DEFAULT_OPTIONS>) {
+export default function Press(options?: RecognizerOptions<typeof DEFAULT_OPTIONS>):ReturnType<RecognizerFunction>  {
     const _context = Object.assign(DEFAULT_OPTIONS, options, { status: STATUS_POSSIBLE as RecognizerStatus });
 
     /**

@@ -1,4 +1,4 @@
-import type { EventTrigger, Computed, RecognizerStatus } from '@any-touch/shared';
+import type { EventTrigger, Computed, RecognizerStatus,RecognizerOptions, RecognizerFunction} from '@any-touch/shared';
 import {
     STATUS_POSSIBLE, STATUS_FAILED, STATUS_RECOGNIZED, DIRECTION_UP, INPUT_START, INPUT_CANCEL, INPUT_END
 } from '@any-touch/shared';
@@ -15,7 +15,7 @@ const DEFAULT_OPTIONS = {
  * 按压识别器
  * @param options 选项
  */
-export default function Press(options: Partial<typeof DEFAULT_OPTIONS>) {
+export default function Press(options?: RecognizerOptions<typeof DEFAULT_OPTIONS>):ReturnType<RecognizerFunction>  {
     const _context = Object.assign(
         DEFAULT_OPTIONS,
         options,

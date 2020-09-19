@@ -1,23 +1,26 @@
-import type { EventTrigger, Computed, RecognizerStatus } from '@any-touch/shared';
-import {
-    STATUS_POSSIBLE,
-} from '@any-touch/shared';
+import type { EventTrigger, Computed, RecognizerStatus, RecognizerFunction,RecognizerOptions } from '@any-touch/shared';
+import { STATUS_POSSIBLE } from '@any-touch/shared';
 import { ComputeDistance, ComputeDeltaXY, ComputeVAndDir } from '@any-touch/compute';
 import { recognizeForPressMoveLike, canResetStatusForPressMoveLike } from '@any-touch/recognizer';
 const DEFAULT_OPTIONS = {
     name: 'pan',
     threshold: 10,
-    pointLength: 1
+    pointLength: 1,
 };
+
 
 /**
  * 拖拽识别器
- * @param options 选项 
+ * @param options 选项
  */
-function Pan(options: Partial<typeof DEFAULT_OPTIONS>) {
-    const _context = Object.assign(DEFAULT_OPTIONS, options, { status: STATUS_POSSIBLE as RecognizerStatus });
+function Pan(options?: RecognizerOptions<typeof DEFAULT_OPTIONS>):ReturnType<RecognizerFunction>  {
+    const _context = Object.assign(
+        DEFAULT_OPTIONS,
+        options,
+        { status: STATUS_POSSIBLE as RecognizerStatus });
 
     let _isRecognized = false;
+    
     /**
      * 必要条件
      * @param computed 计算数据
@@ -25,10 +28,7 @@ function Pan(options: Partial<typeof DEFAULT_OPTIONS>) {
      */
     function _test(computed: Computed): boolean {
         const { pointLength, distance } = computed;
-        return (
-            (_isRecognized || _context.threshold <= distance) &&
-            _context.pointLength === pointLength
-        );
+        return (_isRecognized || _context.threshold <= distance) && _context.pointLength === pointLength;
     }
 
     /**
@@ -40,25 +40,29 @@ function Pan(options: Partial<typeof DEFAULT_OPTIONS>) {
         // 重置status
         if (canResetStatusForPressMoveLike(_context.status)) {
             _context.status = STATUS_POSSIBLE;
-        };
+        }
 
         // 需要有方向
-        const isRecognizedNow = void 0 !== computed.direction &&
-            recognizeForPressMoveLike(computed,
+        const isRecognizedNow =
+            void 0 !== computed.direction &&
+            recognizeForPressMoveLike(
+                computed,
                 _test,
                 _context.name,
                 _context.status,
-                emit, ([isRecognized, status]) => {
+                emit,
+                ([isRecognized, status]) => {
                     _context.status = status;
                     _isRecognized = isRecognized;
-                });
+                }
+            );
         // panleft/panup/panright/pandown
         if (isRecognizedNow) {
             emit(_context.name + computed.direction);
         }
     }
 
-    return [_context,_recognize, ];
+    return [_context, _recognize];
 }
 Pan.C = [ComputeVAndDir, ComputeDistance, ComputeDeltaXY];
 export default Pan;

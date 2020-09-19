@@ -1,4 +1,4 @@
-import type { Point, RecognizerStatus, Computed } from '@any-touch/shared';
+import type { Point, RecognizerStatus, Computed, RecognizerOptions, RecognizerFunction, RecognizerContext } from '@any-touch/shared';
 import {
     STATUS_RECOGNIZED,
     STATUS_POSSIBLE,
@@ -6,6 +6,7 @@ import {
 } from '@any-touch/shared';
 import { getVLength } from '@any-touch/vector';
 import { ComputeDistance, ComputeMaxLength } from '@any-touch/compute';
+import createContext from '@any-touch/recognizer';
 const DEFAULT_OPTIONS = {
     name: 'tap',
     // 触点数
@@ -24,12 +25,9 @@ const DEFAULT_OPTIONS = {
     maxPressTime: 250,
 };
 
+export default function Tap(options?: RecognizerOptions<typeof DEFAULT_OPTIONS>): ReturnType<RecognizerFunction> {
+    const _context = createContext(DEFAULT_OPTIONS, options);
 
-export default function Tap(options: Partial<typeof DEFAULT_OPTIONS>) {
-    const _context = Object.assign(
-        DEFAULT_OPTIONS,
-        options,
-        { status: STATUS_POSSIBLE as RecognizerStatus });
     let _tapCount = 0;
     // 记录每次单击完成时的坐标
     let _prevTapPoint: Point | undefined;
@@ -192,6 +190,6 @@ export default function Tap(options: Partial<typeof DEFAULT_OPTIONS>) {
         }
     };
 
-    return [_context,_recognize];
+    return [_context, _recognize];
 }
 Tap.C = [ComputeDistance, ComputeMaxLength];
